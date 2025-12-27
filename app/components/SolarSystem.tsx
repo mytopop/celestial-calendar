@@ -4,7 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars, Text } from '@react-three/drei';
 import { useEffect, useState, useRef } from 'react';
 import * as THREE from 'three';
-import { Body, Horizon, Equator } from 'astronomy-engine';
+import { Body } from 'astronomy-engine';
 import { useThree } from '@react-three/fiber';
 
 // 天体数据
@@ -38,8 +38,10 @@ interface CelestialBodyProps {
 function CelestialBody({ size, color, position, emissive, name, onClick }: CelestialBodyProps) {
   const meshRef = useRef<THREE.Mesh>(null);
 
-  const handleDoubleClick = () => {
-    if (onClick && position) {
+  const handleClick = (event: any) => {
+    event.stopPropagation();
+    console.log('Clicked on:', name);
+    if (onClick) {
       onClick();
     }
   };
@@ -48,8 +50,8 @@ function CelestialBody({ size, color, position, emissive, name, onClick }: Celes
     <group position={position}>
       <mesh
         ref={meshRef}
-        onClick={onClick}
-        onDoubleClick={handleDoubleClick}
+        onClick={handleClick}
+        onDoubleClick={handleClick}
       >
         <sphereGeometry args={[size, 32, 32]} />
         <meshStandardMaterial
@@ -82,12 +84,15 @@ function CameraController({ targetPosition }: { targetPosition: [number, number,
 
   useEffect(() => {
     if (targetPosition && controls) {
+      console.log('CameraController: Moving to target:', targetPosition);
       const target = new THREE.Vector3(...targetPosition);
       const distance = 10;
 
       // 平滑移动相机
       const startPosition = camera.position.clone();
       const endPosition = target.clone().add(new THREE.Vector3(distance, distance, distance));
+
+      console.log('Camera animation from:', startPosition, 'to:', endPosition);
 
       let progress = 0;
       const animate = () => {
@@ -96,6 +101,8 @@ function CameraController({ targetPosition }: { targetPosition: [number, number,
           camera.position.lerpVectors(startPosition, endPosition, easeInOutCubic(progress));
           camera.lookAt(target);
           requestAnimationFrame(animate);
+        } else {
+          console.log('Camera animation complete');
         }
       };
 
@@ -177,21 +184,36 @@ function SolarSystemScene({ time, location, onBodyClick, targetPlanet }: SolarSy
   const [selectedBody, setSelectedBody] = useState<string | null>(null);
   const [targetPosition, setTargetPosition] = useState<[number, number, number] | null>(null);
 
-  // 计算天体位置
+  // 计算天体位置（简化轨道模型）
   const calculatePosition = (body: any, distance: number) => {
     try {
-      const observer = { latitude: location.latitude, longitude: location.longitude, height: 0 };
-      // 先获取天体的赤道坐标
-      const equator = Equator(body, time, observer, true, true);
-      // 然后计算地平坐标
-      const pos = Horizon(time, observer, equator.ra, equator.dec, 'normal');
+      // 基于时间计算角度，让行星沿圆形轨道运动
+      const dayOfYear = (time.getTime() - new Date(time.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24);
+      const baseAngle = (dayOfYear / 365) * Math.PI * 2;
 
-      const x = distance * Math.cos(pos.altitude) * Math.sin(pos.azimuth);
-      const y = distance * Math.sin(pos.altitude);
-      const z = distance * Math.cos(pos.altitude) * Math.cos(pos.azimuth);
+      // 不同行星有不同的轨道速度
+      const speedFactors: Record<string, number> = {
+        'mercury': 4.15,
+        'venus': 1.62,
+        'earth': 1.0,
+        'mars': 0.53,
+        'jupiter': 0.084,
+        'saturn': 0.034
+      };
+
+      const bodyKey = Object.keys(Body).find(key => Body[key as keyof typeof Body] === body);
+      const speed = speedFactors[bodyKey || 'earth'] || 1.0;
+      const angle = baseAngle * speed;
+
+      const x = distance * Math.cos(angle);
+      const z = distance * Math.sin(angle);
+      const y = 0;
+
+      console.log(`${bodyKey} at distance ${distance}: angle=${angle.toFixed(2)}, pos=[${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)}]`);
 
       return [x, y, z] as [number, number, number];
-    } catch {
+    } catch (error) {
+      console.error('Error calculating position:', error);
       return [distance, 0, 0] as [number, number, number];
     }
   };
@@ -205,8 +227,10 @@ function SolarSystemScene({ time, location, onBodyClick, targetPlanet }: SolarSy
   const currentTermIndex = getCurrentSolarTermIndex();
 
   const handleBodyClick = (name: string, info: any, position?: [number, number, number]) => {
+    console.log('handleBodyClick called:', name, 'position:', position);
     setSelectedBody(name);
     if (position) {
+      console.log('Setting target position:', position);
       setTargetPosition(position);
     }
     if (onBodyClick) {
