@@ -83,9 +83,7 @@ function Orbit({ radius, color = '#444444' }: { radius: number; color?: string }
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={points.length}
-          array={new Float32Array(points.flatMap((v) => [v.x, v.y, v.z]))}
-          itemSize={3}
+          args={[new Float32Array(points.flatMap((v) => [v.x, v.y, v.z])), 3]}
         />
       </bufferGeometry>
       <lineBasicMaterial color={color} transparent opacity={0.5} />
