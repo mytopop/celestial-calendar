@@ -4,7 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars, Text } from '@react-three/drei';
 import { useEffect, useState, useRef } from 'react';
 import * as THREE from 'three';
-import { Astronomy } from 'astronomy-engine';
+import Astronomy from 'astronomy-engine';
 
 // 天体数据
 const PLANETS = {
