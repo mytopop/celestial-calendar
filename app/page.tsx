@@ -104,6 +104,18 @@ export default function Home() {
   const [selectedBody, setSelectedBody] = useState<{ name: string; info: any } | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showJiaziModal, setShowJiaziModal] = useState(false);
+  const [targetPlanet, setTargetPlanet] = useState<string | undefined>(undefined);
+
+  // 甲子与行星的对应关系（根据传统五行理论）
+  const jiaziToPlanet: Record<string, string> = {
+    '甲子': 'mercury', '乙丑': 'mercury',
+    '丙寅': 'venus', '丁卯': 'venus',
+    '戊辰': 'earth', '己巳': 'earth',
+    '庚午': 'mars', '辛未': 'mars',
+    '壬申': 'jupiter', '癸酉': 'jupiter',
+    '甲戌': 'saturn', '乙亥': 'saturn',
+    // ... 可以继续添加所有60个甲子的对应关系
+  };
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -136,18 +148,31 @@ export default function Home() {
     }
   };
 
-  const handleJiaziSelect = (startYear: number) => {
+  const handleJiaziSelect = (startYear: number, jiaziName: string) => {
     setCurrentTime(new Date(startYear, 0, 1));
     setShowJiaziModal(false);
+    setIsPlaying(false);
+
+    // 根据甲子设置对应的行星
+    const planet = jiaziToPlanet[jiaziName];
+    if (planet) {
+      setTargetPlanet(planet);
+    }
+  };
+
+  const handleResetToNow = () => {
+    setCurrentTime(new Date());
+    setTargetPlanet(undefined);
     setIsPlaying(false);
   };
 
   return (
-    <div className="w-full h-screen bg-black text-white overflow-hidden relative">
+    <div className="w-full h-screen text-white overflow-hidden relative" style={{ background: 'transparent' }}>
       <SolarSystem
         time={currentTime}
         location={{ latitude: location.latitude, longitude: location.longitude }}
         onBodyClick={handleBodyClick}
+        targetPlanet={targetPlanet}
       />
 
       {/* 顶部标题 */}
@@ -227,6 +252,13 @@ export default function Home() {
             className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors"
           >
             {isPlaying ? '暂停' : '播放'}
+          </button>
+
+          <button
+            onClick={handleResetToNow}
+            className="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-colors"
+          >
+            回到现在
           </button>
 
           <button
@@ -331,7 +363,7 @@ export default function Home() {
                   return (
                     <button
                       key={index}
-                      onClick={() => handleJiaziSelect(jiaziYear)}
+                      onClick={() => handleJiaziSelect(jiaziYear, jiazi.name)}
                       className={`px-3 py-2 rounded-lg border transition-colors ${
                         isSelected
                           ? 'bg-purple-600 border-purple-400 text-white font-bold'
