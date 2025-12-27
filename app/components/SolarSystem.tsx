@@ -184,32 +184,35 @@ function SolarSystemScene({ time, location, onBodyClick, targetPlanet }: SolarSy
   const [selectedBody, setSelectedBody] = useState<string | null>(null);
   const [targetPosition, setTargetPosition] = useState<[number, number, number] | null>(null);
 
-  // 计算天体位置（简化轨道模型）
+  // 计算天体位置（基于真实轨道周期）
   const calculatePosition = (body: any, distance: number) => {
     try {
-      // 基于时间计算角度，让行星沿圆形轨道运动
-      const dayOfYear = (time.getTime() - new Date(time.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24);
-      const baseAngle = (dayOfYear / 365) * Math.PI * 2;
-
-      // 不同行星有不同的轨道速度
-      const speedFactors: Record<string, number> = {
-        'mercury': 4.15,
-        'venus': 1.62,
-        'earth': 1.0,
-        'mars': 0.53,
-        'jupiter': 0.084,
-        'saturn': 0.034
+      // 真实的行星公转周期（单位：地球日）
+      const orbitalPeriods: Record<string, number> = {
+        'Mercury': 87.97,    // 水星：87.97天
+        'Venus': 224.7,      // 金星：224.7天
+        'Earth': 365.256,    // 地球：365.256天
+        'Mars': 686.98,      // 火星：686.98天
+        'Jupiter': 4332.59,  // 木星：4332.59天（11.86年）
+        'Saturn': 10759.22   // 土星：10759.22天（29.46年）
       };
 
+      // 获取当前时间相对于基准时间的总天数
+      const baseDate = new Date('2000-01-01');
+      const daysSinceEpoch = (time.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24);
+
+      // 查找对应行星的轨道周期
       const bodyKey = Object.keys(Body).find(key => Body[key as keyof typeof Body] === body);
-      const speed = speedFactors[bodyKey || 'earth'] || 1.0;
-      const angle = baseAngle * speed;
+      const period = orbitalPeriods[bodyKey || 'Earth'] || 365.256;
+
+      // 计算角度：完整轨道圈数 = 总天数 / 轨道周期
+      const angle = (daysSinceEpoch / period) * Math.PI * 2;
 
       const x = distance * Math.cos(angle);
       const z = distance * Math.sin(angle);
       const y = 0;
 
-      console.log(`${bodyKey} at distance ${distance}: angle=${angle.toFixed(2)}, pos=[${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)}]`);
+      console.log(`${bodyKey}: period=${period.toFixed(1)} days, angle=${angle.toFixed(2)} rad, pos=[${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)}]`);
 
       return [x, y, z] as [number, number, number];
     } catch (error) {
