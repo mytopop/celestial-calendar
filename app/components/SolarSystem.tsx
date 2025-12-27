@@ -36,35 +36,34 @@ interface CelestialBodyProps {
 // 天体组件
 function CelestialBody({ size, color, position, emissive, name, onClick }: CelestialBodyProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const [hovered, setHovered] = useState(false);
 
   return (
-    <mesh
-      ref={meshRef}
-      position={position}
-      onClick={onClick}
-      onPointerOver={() => setHovered(true)}
-      onPointerOut={() => setHovered(false)}
-      scale={hovered ? 1.2 : 1}
-    >
-      <sphereGeometry args={[size, 32, 32]} />
-      <meshStandardMaterial
-        color={color}
-        emissive={emissive || '#000000'}
-        emissiveIntensity={emissive ? 1 : 0}
-      />
-      {name && hovered && (
+    <group position={position}>
+      <mesh
+        ref={meshRef}
+        onClick={onClick}
+      >
+        <sphereGeometry args={[size, 32, 32]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={emissive || '#000000'}
+          emissiveIntensity={emissive ? 1 : 0}
+        />
+      </mesh>
+      {name && (
         <Text
-          position={[0, size + 1, 0]}
-          fontSize={0.8}
-          color="white"
+          position={[0, size + 2, 0]}
+          fontSize={1.5}
+          color="#ffffff"
           anchorX="center"
           anchorY="middle"
+          outlineWidth={0.1}
+          outlineColor="#000000"
         >
           {name}
         </Text>
       )}
-    </mesh>
+    </group>
   );
 }
 
