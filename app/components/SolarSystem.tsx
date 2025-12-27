@@ -135,7 +135,7 @@ function Orbit({ radius, color = '#444444' }: { radius: number; color?: string }
           args={[new Float32Array(points.flatMap((v) => [v.x, v.y, v.z])), 3]}
         />
       </bufferGeometry>
-      <lineBasicMaterial color={color} transparent opacity={0.5} />
+      <lineBasicMaterial color={color} transparent opacity={0.3} linewidth={2} />
     </line>
   );
 }
@@ -327,19 +327,21 @@ function SolarSystemScene({ time, location, onBodyClick, targetPlanet }: SolarSy
       {Object.entries(PLANETS).filter(([key]) => key !== 'earth').map(([key, planet]) => {
         const pos = calculatePosition(planet.body, planet.distance);
         return (
-          <group key={key} position={pos}>
+          <group key={key}>
             <Orbit radius={planet.distance} color={planet.color} />
-            <CelestialBody
-              size={planet.size}
-              color={planet.color}
-              position={[0, 0, 0]}
-              name={planet.name}
-              onClick={() => handleBodyClick(planet.name, {
-                type: 'planet',
-                distance: `${planet.distance} AU`,
-                period: key === 'jupiter' ? '11.86 年' : key === 'saturn' ? '29.46 年' : '未知'
-              }, pos)}
-            />
+            <group position={pos}>
+              <CelestialBody
+                size={planet.size}
+                color={planet.color}
+                position={[0, 0, 0]}
+                name={planet.name}
+                onClick={() => handleBodyClick(planet.name, {
+                  type: 'planet',
+                  distance: `${planet.distance} AU`,
+                  period: key === 'jupiter' ? '11.86 年' : key === 'saturn' ? '29.46 年' : '未知'
+                }, pos)}
+              />
+            </group>
           </group>
         );
       })}

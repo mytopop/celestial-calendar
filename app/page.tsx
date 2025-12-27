@@ -105,6 +105,7 @@ export default function Home() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showJiaziModal, setShowJiaziModal] = useState(false);
   const [targetPlanet, setTargetPlanet] = useState<string | undefined>(undefined);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1); // 播放速度倍数
 
   // 甲子与行星的对应关系（根据传统五行理论）
   const jiaziToPlanet: Record<string, string> = {
@@ -158,11 +159,11 @@ export default function Home() {
     if (!isPlaying) return;
 
     const timer = setInterval(() => {
-      setCurrentTime((prev) => new Date(prev.getTime() + 1000 * 60 * 60 * 24));
-    }, 100);
+      setCurrentTime((prev) => new Date(prev.getTime() + 1000 * 60 * 60 * 24 * playbackSpeed));
+    }, 50); // 提高刷新率到50ms
 
     return () => clearInterval(timer);
-  }, [isPlaying]);
+  }, [isPlaying, playbackSpeed]);
 
   const year = currentTime.getFullYear();
   const month = currentTime.getMonth() + 1;
@@ -320,12 +321,30 @@ export default function Home() {
             className="px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"
           />
 
+          {/* 速度控制 */}
+          <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-2">
+            <span className="text-sm text-gray-400 px-2">速度:</span>
+            {[1, 5, 10, 30, 60, 365].map((speed) => (
+              <button
+                key={speed}
+                onClick={() => setPlaybackSpeed(speed)}
+                className={`px-3 py-1 rounded text-sm transition-colors ${
+                  playbackSpeed === speed
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                {speed === 1 ? '1x' : speed === 365 ? '1年/秒' : speed + 'x'}
+              </button>
+            ))}
+          </div>
+
           <div className="text-sm text-gray-400">
-            <span>时间步进: 1天/秒</span>
+            <span>当前: {playbackSpeed}天/帧 ({playbackSpeed * 20}天/秒)</span>
           </div>
 
           <div className="ml-auto text-sm text-gray-400">
-            <span>提示: 点击天体查看详细信息</span>
+            <span>提示: 点击天体查看详细信息，双击拉近视角</span>
           </div>
         </div>
       </div>
