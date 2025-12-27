@@ -4,7 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars, Text } from '@react-three/drei';
 import { useEffect, useState, useRef } from 'react';
 import * as THREE from 'three';
-import { Body, Horizon } from 'astronomy-engine';
+import { Body, Horizon, Equator } from 'astronomy-engine';
 
 // 天体数据
 const PLANETS = {
@@ -137,7 +137,10 @@ function SolarSystemScene({ time, location, onBodyClick }: SolarSystemSceneProps
   const calculatePosition = (body: any, distance: number) => {
     try {
       const observer = { latitude: location.latitude, longitude: location.longitude, height: 0 };
-      const pos = Horizon(time, observer, body);
+      // 先获取天体的赤道坐标
+      const equator = Equator(body, time, observer, true, true);
+      // 然后计算地平坐标
+      const pos = Horizon(time, observer, equator.ra, equator.dec, 'normal');
 
       const x = distance * Math.cos(pos.altitude) * Math.sin(pos.azimuth);
       const y = distance * Math.sin(pos.altitude);
