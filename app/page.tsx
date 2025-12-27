@@ -104,8 +104,6 @@ export default function Home() {
   const [selectedBody, setSelectedBody] = useState<{ name: string; info: any } | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showJiaziModal, setShowJiaziModal] = useState(false);
-  const [targetYear, setTargetYear] = useState<number | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -116,46 +114,6 @@ export default function Home() {
 
     return () => clearInterval(timer);
   }, [isPlaying]);
-
-  // 动画过渡到目标年份
-  useEffect(() => {
-    if (targetYear === null || isAnimating) return;
-
-    setIsAnimating(true);
-    const currentYear = currentTime.getFullYear();
-    const yearDiff = targetYear - currentYear;
-
-    if (yearDiff === 0) {
-      setIsAnimating(false);
-      setTargetYear(null);
-      return;
-    }
-
-    const duration = Math.abs(yearDiff) * 20; // 每年20毫秒
-    const steps = Math.abs(yearDiff);
-    const stepDuration = duration / steps;
-    const increment = yearDiff > 0 ? 1 : -1;
-
-    let currentStep = 0;
-    const timer = setInterval(() => {
-      if (currentStep >= steps) {
-        clearInterval(timer);
-        setIsAnimating(false);
-        setTargetYear(null);
-        return;
-      }
-
-      setCurrentTime((prev) => {
-        const newDate = new Date(prev);
-        newDate.setFullYear(newDate.getFullYear() + increment);
-        return newDate;
-      });
-
-      currentStep++;
-    }, stepDuration);
-
-    return () => clearInterval(timer);
-  }, [targetYear, isAnimating]);
 
   const year = currentTime.getFullYear();
   const month = currentTime.getMonth() + 1;
@@ -179,7 +137,7 @@ export default function Home() {
   };
 
   const handleJiaziSelect = (startYear: number) => {
-    setTargetYear(startYear);
+    setCurrentTime(new Date(startYear, 0, 1));
     setShowJiaziModal(false);
     setIsPlaying(false);
   };
@@ -273,10 +231,9 @@ export default function Home() {
 
           <button
             onClick={() => setShowJiaziModal(true)}
-            disabled={isAnimating}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
           >
-            {isAnimating ? '运行中...' : '60甲子'}
+            60甲子
           </button>
 
           <input

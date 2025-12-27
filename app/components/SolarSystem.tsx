@@ -8,12 +8,12 @@ import { Body, Horizon, Equator } from 'astronomy-engine';
 
 // 天体数据
 const PLANETS = {
-  mercury: { name: '水星', size: 0.4, color: '#aaaaaa', distance: 10, body: Body.Mercury },
-  venus: { name: '金星', size: 0.9, color: '#ffcc00', distance: 15, body: Body.Venus },
-  earth: { name: '地球', size: 1, color: '#2233ff', distance: 20, body: Body.Earth },
-  mars: { name: '火星', size: 0.5, color: '#ff3333', distance: 25, body: Body.Mars },
-  jupiter: { name: '木星', size: 3, color: '#ffaa77', distance: 40, body: Body.Jupiter },
-  saturn: { name: '土星', size: 2.5, color: '#ffdd88', distance: 55, body: Body.Saturn },
+  mercury: { name: '水星', size: 1.2, color: '#aaaaaa', distance: 12, body: Body.Mercury },
+  venus: { name: '金星', size: 1.8, color: '#ffd700', distance: 18, body: Body.Venus },
+  earth: { name: '地球', size: 2, color: '#4169e1', distance: 24, body: Body.Earth },
+  mars: { name: '火星', size: 1.5, color: '#ff4500', distance: 30, body: Body.Mars },
+  jupiter: { name: '木星', size: 5, color: '#ffa500', distance: 45, body: Body.Jupiter },
+  saturn: { name: '土星', size: 4, color: '#f4a460', distance: 60, body: Body.Saturn },
 };
 
 // 24节气
