@@ -139,7 +139,7 @@ function SolarSystemScene({ time, location, onBodyClick }: SolarSystemSceneProps
   const calculatePosition = (body: any, distance: number) => {
     try {
       const observer = { latitude: location.latitude, longitude: location.longitude, height: 0 };
-      const pos = Astronomy.Horizon(time, observer, body);
+      const pos = Horizon(time, observer, body);
 
       const x = distance * Math.cos(pos.altitude) * Math.sin(pos.azimuth);
       const y = distance * Math.sin(pos.altitude);
@@ -197,7 +197,7 @@ function SolarSystemScene({ time, location, onBodyClick }: SolarSystemSceneProps
       })}
 
       {/* 地球和月球 */}
-      <group position={calculatePosition(Astronomy.Body.Earth, PLANETS.earth.distance)}>
+      <group position={calculatePosition(Body.Earth, PLANETS.earth.distance)}>
         <CelestialBody
           size={PLANETS.earth.size}
           color={PLANETS.earth.color}
@@ -213,7 +213,7 @@ function SolarSystemScene({ time, location, onBodyClick }: SolarSystemSceneProps
         <CelestialBody
           size={0.3}
           color="#cccccc"
-          position={calculatePosition(Astronomy.Body.Moon, 2)}
+          position={calculatePosition(Body.Moon, 2)}
           name="月球"
           onClick={() => handleBodyClick('月球', { type: 'satellite', period: '27.3 天' })}
         />
