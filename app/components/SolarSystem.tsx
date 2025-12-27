@@ -4,16 +4,16 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars, Text } from '@react-three/drei';
 import { useEffect, useState, useRef } from 'react';
 import * as THREE from 'three';
-import Astronomy from 'astronomy-engine';
+import { Body, Horizon } from 'astronomy-engine';
 
 // 天体数据
 const PLANETS = {
-  mercury: { name: '水星', size: 0.4, color: '#aaaaaa', distance: 10, body: Astronomy.Body.Mercury },
-  venus: { name: '金星', size: 0.9, color: '#ffcc00', distance: 15, body: Astronomy.Body.Venus },
-  earth: { name: '地球', size: 1, color: '#2233ff', distance: 20, body: Astronomy.Body.Earth },
-  mars: { name: '火星', size: 0.5, color: '#ff3333', distance: 25, body: Astronomy.Body.Mars },
-  jupiter: { name: '木星', size: 3, color: '#ffaa77', distance: 40, body: Astronomy.Body.Jupiter },
-  saturn: { name: '土星', size: 2.5, color: '#ffdd88', distance: 55, body: Astronomy.Body.Saturn },
+  mercury: { name: '水星', size: 0.4, color: '#aaaaaa', distance: 10, body: Body.Mercury },
+  venus: { name: '金星', size: 0.9, color: '#ffcc00', distance: 15, body: Body.Venus },
+  earth: { name: '地球', size: 1, color: '#2233ff', distance: 20, body: Body.Earth },
+  mars: { name: '火星', size: 0.5, color: '#ff3333', distance: 25, body: Body.Mars },
+  jupiter: { name: '木星', size: 3, color: '#ffaa77', distance: 40, body: Body.Jupiter },
+  saturn: { name: '土星', size: 2.5, color: '#ffdd88', distance: 55, body: Body.Saturn },
 };
 
 // 24节气
