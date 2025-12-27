@@ -240,14 +240,19 @@ function SolarSystemScene({ time, location, onBodyClick, targetPlanet }: SolarSy
 
   // 监听targetPlanet变化，自动跳转到对应行星
   useEffect(() => {
+    console.log('SolarSystemScene: targetPlanet changed to:', targetPlanet);
     if (targetPlanet) {
       const planet = PLANETS[targetPlanet as keyof typeof PLANETS];
+      console.log('Found planet data:', planet);
       if (planet) {
         const pos = calculatePosition(planet.body, planet.distance);
+        console.log('Calculated position for', planet.name, ':', pos);
         setTargetPosition(pos);
+      } else {
+        console.log('Planet not found in PLANETS:', targetPlanet);
       }
     }
-  }, [targetPlanet]);
+  }, [targetPlanet, time]); // 添加time依赖，确保时间变化时重新计算
 
   return (
     <>

@@ -108,13 +108,50 @@ export default function Home() {
 
   // 甲子与行星的对应关系（根据传统五行理论）
   const jiaziToPlanet: Record<string, string> = {
+    // 水行（水星）
     '甲子': 'mercury', '乙丑': 'mercury',
-    '丙寅': 'venus', '丁卯': 'venus',
-    '戊辰': 'earth', '己巳': 'earth',
-    '庚午': 'mars', '辛未': 'mars',
+    '丙子': 'mercury', '丁丑': 'mercury',
+    '戊子': 'mercury', '己丑': 'mercury',
+    '庚子': 'mercury', '辛丑': 'mercury',
+    '壬子': 'mercury', '癸丑': 'mercury',
+
+    // 木行（木星）
+    '壬寅': 'jupiter', '癸卯': 'jupiter',
+    '壬辰': 'jupiter', '癸巳': 'jupiter',
+    '壬午': 'jupiter', '癸未': 'jupiter',
     '壬申': 'jupiter', '癸酉': 'jupiter',
-    '甲戌': 'saturn', '乙亥': 'saturn',
-    // ... 可以继续添加所有60个甲子的对应关系
+    '壬戌': 'jupiter', '癸亥': 'jupiter',
+
+    // 火行（火星）
+    '丙寅': 'mars', '丁卯': 'mars',
+    '丙辰': 'mars', '丁巳': 'mars',
+    '丙午': 'mars', '丁未': 'mars',
+    '丙申': 'mars', '丁酉': 'mars',
+    '丙戌': 'mars', '丁亥': 'mars',
+
+    // 土行（土星）
+    '戊寅': 'saturn', '己卯': 'saturn',
+    '戊辰': 'saturn', '己巳': 'saturn',
+    '戊午': 'saturn', '己未': 'saturn',
+    '戊申': 'saturn', '己酉': 'saturn',
+    '戊戌': 'saturn', '己亥': 'saturn',
+
+    // 金行（金星）
+    '庚寅': 'venus', '辛卯': 'venus',
+    '庚辰': 'venus', '辛巳': 'venus',
+    '庚午': 'venus', '辛未': 'venus',
+    '庚申': 'venus', '辛酉': 'venus',
+    '庚戌': 'venus', '辛亥': 'venus',
+
+    // 水星补充（其余甲子）
+    '甲寅': 'mercury', '乙卯': 'mercury',
+    '甲辰': 'mercury', '乙巳': 'mercury',
+    '甲午': 'mercury', '乙未': 'mercury',
+    '甲申': 'mercury', '乙酉': 'mercury',
+    '甲戌': 'mercury', '乙亥': 'mercury',
+
+    // 地球作为默认
+    'default': 'earth'
   };
 
   useEffect(() => {
@@ -149,14 +186,22 @@ export default function Home() {
   };
 
   const handleJiaziSelect = (startYear: number, jiaziName: string) => {
+    console.log('handleJiaziSelect called:', { startYear, jiaziName });
+
     setCurrentTime(new Date(startYear, 0, 1));
     setShowJiaziModal(false);
     setIsPlaying(false);
 
     // 根据甲子设置对应的行星
-    const planet = jiaziToPlanet[jiaziName];
+    const planet = jiaziToPlanet[jiaziName] || jiaziToPlanet['default'];
+    console.log('Mapped to planet:', planet);
+
     if (planet) {
+      console.log('Setting target planet to:', planet);
       setTargetPlanet(planet);
+    } else {
+      console.log('No planet found, using earth as default');
+      setTargetPlanet('earth');
     }
   };
 
