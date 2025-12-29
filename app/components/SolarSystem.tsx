@@ -228,9 +228,9 @@ function CelestialBody({
 
 // 相机控制器 - 改进的平滑动画
 function CameraController({ targetPosition }: { targetPosition: [number, number, number] | null }) {
-  const { camera, controls } = useThree();
+  const { camera } = useThree();
   const controlsRef = useRef<any>(null);
-  const animationRef = useRef<{ startTime: number; duration: number } | null>(null);
+  const animationRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (targetPosition && controlsRef.current) {
@@ -242,13 +242,12 @@ function CameraController({ targetPosition }: { targetPosition: [number, number,
       const endPosition = target.clone().add(new THREE.Vector3(distance, distance * 0.8, distance));
 
       // 取消之前的动画
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current.startTime as unknown as number);
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
       }
 
       const duration = 1500; // 1.5秒动画
       const startTime = performance.now();
-      animationRef.current = { startTime, duration };
 
       const animate = () => {
         const elapsed = performance.now() - startTime;
@@ -264,12 +263,22 @@ function CameraController({ targetPosition }: { targetPosition: [number, number,
             controls.update();
           }
 
-          requestAnimationFrame(animate);
+          animationRef.current = requestAnimationFrame(animate);
+        } else {
+          animationRef.current = null;
         }
       };
 
-      animate();
+      animationRef.current = requestAnimationFrame(animate);
     }
+
+    // 清理函数
+    return () => {
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+    };
   }, [targetPosition, camera]);
 
   return (
@@ -278,12 +287,19 @@ function CameraController({ targetPosition }: { targetPosition: [number, number,
       enablePan={true}
       enableZoom={true}
       enableRotate={true}
-      minDistance={8}
-      maxDistance={200}
+      minDistance={5}
+      maxDistance={300}
+      minPolarAngle={0}
+      maxPolarAngle={Math.PI}
       enableDamping
       dampingFactor={0.05}
-      rotateSpeed={0.5}
-      zoomSpeed={0.8}
+      rotateSpeed={0.6}
+      zoomSpeed={1.2}
+      panSpeed={0.8}
+      touches={{
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN
+      }}
     />
   );
 }
