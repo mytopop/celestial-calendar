@@ -386,8 +386,9 @@ function SolarSystemScene({ time, location, onBodyClick, targetPlanet }: SolarSy
 
   return (
     <>
-      <ambientLight intensity={0.1} />
-      <pointLight position={[0, 0, 0]} intensity={2} color="#ffff00" />
+      <ambientLight intensity={0.8} />
+      <pointLight position={[0, 0, 0]} intensity={3} color="#ffff00" castShadow />
+      <directionalLight position={[50, 50, 50]} intensity={0.5} />
       <Stars radius={300} depth={60} count={5000} factor={4} saturation={0} />
       <CameraController targetPosition={targetPosition} />
 
