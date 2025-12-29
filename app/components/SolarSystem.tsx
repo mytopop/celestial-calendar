@@ -1,6 +1,6 @@
 'use client';
 
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, Text } from '@react-three/drei';
 import { useEffect, useState, useRef } from 'react';
 import * as THREE from 'three';
@@ -117,6 +117,15 @@ function CelestialBody({
   hasLand
 }: CelestialBodyProps) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const [hovered, setHovered] = useState(false);
+
+  // 行星自转动画
+  useFrame((state, delta) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y += delta * 0.5; // 自转速度
+    }
+  });
 
   const handleClick = (event: any) => {
     event.stopPropagation();
@@ -125,13 +134,25 @@ function CelestialBody({
     }
   };
 
+  const handlePointerOver = (event: any) => {
+    event.stopPropagation();
+    setHovered(true);
+  };
+
+  const handlePointerOut = (event: any) => {
+    event.stopPropagation();
+    setHovered(false);
+  };
+
   return (
-    <group position={position}>
+    <group position={position} ref={groupRef}>
       {/* 行星本体 */}
       <mesh
         ref={meshRef}
         onClick={handleClick}
-        onDoubleClick={handleClick}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+        scale={hovered ? 1.1 : 1}
       >
         <sphereGeometry args={[size, 32, 32]} />
         <meshStandardMaterial
@@ -187,15 +208,15 @@ function CelestialBody({
         </mesh>
       )}
 
-      {/* 名称标签 */}
-      {name && (
+      {/* 名称标签 - 悬停时显示 */}
+      {name && hovered && (
         <Text
           position={[0, size + (hasRings ? size * 2.5 : 2), 0]}
-          fontSize={1.5}
+          fontSize={1.2}
           color="#ffffff"
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.1}
+          outlineWidth={0.15}
           outlineColor="#000000"
         >
           {name}
@@ -205,40 +226,66 @@ function CelestialBody({
   );
 }
 
-// 相机控制器
+// 相机控制器 - 改进的平滑动画
 function CameraController({ targetPosition }: { targetPosition: [number, number, number] | null }) {
   const { camera, controls } = useThree();
   const controlsRef = useRef<any>(null);
+  const animationRef = useRef<{ startTime: number; duration: number } | null>(null);
 
   useEffect(() => {
-    if (targetPosition && controls) {
-      console.log('CameraController: Moving to target:', targetPosition);
+    if (targetPosition && controlsRef.current) {
       const target = new THREE.Vector3(...targetPosition);
-      const distance = 10;
+      const distance = 15;
 
       // 平滑移动相机
       const startPosition = camera.position.clone();
-      const endPosition = target.clone().add(new THREE.Vector3(distance, distance, distance));
+      const endPosition = target.clone().add(new THREE.Vector3(distance, distance * 0.8, distance));
 
-      console.log('Camera animation from:', startPosition, 'to:', endPosition);
+      // 取消之前的动画
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current.startTime as unknown as number);
+      }
 
-      let progress = 0;
+      const duration = 1500; // 1.5秒动画
+      const startTime = performance.now();
+      animationRef.current = { startTime, duration };
+
       const animate = () => {
-        progress += 0.02;
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
         if (progress <= 1) {
-          camera.position.lerpVectors(startPosition, endPosition, easeInOutCubic(progress));
-          camera.lookAt(target);
+          const eased = easeInOutCubic(progress);
+          camera.position.lerpVectors(startPosition, endPosition, eased);
+
+          const controls = controlsRef.current;
+          if (controls && controls.target) {
+            (controls.target as THREE.Vector3).lerp(target, eased * 0.1);
+            controls.update();
+          }
+
           requestAnimationFrame(animate);
-        } else {
-          console.log('Camera animation complete');
         }
       };
 
       animate();
     }
-  }, [targetPosition]);
+  }, [targetPosition, camera]);
 
-  return <OrbitControls ref={controlsRef} enablePan={true} enableZoom={true} enableRotate={true} minDistance={5} maxDistance={200} />;
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      enablePan={true}
+      enableZoom={true}
+      enableRotate={true}
+      minDistance={8}
+      maxDistance={200}
+      enableDamping
+      dampingFactor={0.05}
+      rotateSpeed={0.5}
+      zoomSpeed={0.8}
+    />
+  );
 }
 
 function easeInOutCubic(t: number): number {
@@ -263,7 +310,7 @@ function Orbit({ radius, color = '#444444' }: { radius: number; color?: string }
           args={[new Float32Array(points.flatMap((v) => [v.x, v.y, v.z])), 3]}
         />
       </bufferGeometry>
-      <lineBasicMaterial color={color} transparent opacity={0.3} linewidth={2} />
+      <lineBasicMaterial color={color} transparent opacity={0.15} linewidth={1} />
     </line>
   );
 }
