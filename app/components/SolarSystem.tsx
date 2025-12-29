@@ -226,70 +226,60 @@ function CelestialBody({
   );
 }
 
-// 相机控制器 - 改进的平滑动画
+// 相机控制器 - 使用useFrame的平滑动画
 function CameraController({ targetPosition }: { targetPosition: [number, number, number] | null }) {
-  const { camera } = useThree();
+  const { camera, controls } = useThree();
   const controlsRef = useRef<any>(null);
-  const animationRef = useRef<number | null>(null);
-  const isAnimating = useRef(false);
+  const animationState = useRef<{
+    startPosition: THREE.Vector3;
+    endPosition: THREE.Vector3;
+    startTarget: THREE.Vector3;
+    endTarget: THREE.Vector3;
+    startTime: number;
+    duration: number;
+  } | null>(null);
 
   useEffect(() => {
-    if (targetPosition && controlsRef.current && !isAnimating.current) {
+    if (targetPosition && controlsRef.current) {
       const target = new THREE.Vector3(...targetPosition);
-      const distance = 25; // 增加距离，让用户能看到更多行星
-
-      // 禁用OrbitControls的自动更新，避免冲突
-      const controls = controlsRef.current;
-      controls.enabled = false;
-      isAnimating.current = true;
-
-      // 平滑移动相机
-      const startPosition = camera.position.clone();
-      const startTarget = controls.target.clone();
+      const distance = 25;
       const endPosition = target.clone().add(new THREE.Vector3(distance, distance * 0.6, distance));
 
-      // 取消之前的动画
-      if (animationRef.current !== null) {
-        cancelAnimationFrame(animationRef.current);
-      }
-
-      const duration = 1200; // 1.2秒动画
-      const startTime = performance.now();
-
-      const animate = () => {
-        const elapsed = performance.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        if (progress <= 1) {
-          const eased = easeInOutCubic(progress);
-          camera.position.lerpVectors(startPosition, endPosition, eased);
-          (controls.target as THREE.Vector3).lerpVectors(startTarget, target, eased);
-
-          animationRef.current = requestAnimationFrame(animate);
-        } else {
-          // 动画完成，重新启用OrbitControls
-          controls.enabled = true;
-          controls.update();
-          isAnimating.current = false;
-          animationRef.current = null;
-        }
+      // 设置动画状态
+      animationState.current = {
+        startPosition: camera.position.clone(),
+        endPosition: endPosition,
+        startTarget: controlsRef.current.target.clone(),
+        endTarget: target,
+        startTime: performance.now(),
+        duration: 1000
       };
-
-      animationRef.current = requestAnimationFrame(animate);
+    } else {
+      animationState.current = null;
     }
+  }, [targetPosition, camera, controls]);
 
-    // 清理函数
-    return () => {
-      if (animationRef.current !== null) {
-        cancelAnimationFrame(animationRef.current);
-        animationRef.current = null;
+  // 使用useFrame进行平滑动画
+  useFrame(() => {
+    if (animationState.current && controlsRef.current) {
+      const state = animationState.current;
+      const elapsed = performance.now() - state.startTime;
+      const progress = Math.min(elapsed / state.duration, 1);
+
+      if (progress < 1) {
+        const eased = easeInOutCubic(progress);
+        camera.position.lerpVectors(state.startPosition, state.endPosition, eased);
+        (controlsRef.current.target as THREE.Vector3).lerpVectors(state.startTarget, state.endTarget, eased);
+      } else {
+        // 动画完成，直接设置到最终位置
+        camera.position.copy(state.endPosition);
+        (controlsRef.current.target as THREE.Vector3).copy(state.endTarget);
+        animationState.current = null;
       }
-      if (controlsRef.current) {
-        controlsRef.current.enabled = true;
-      }
-      isAnimating.current = false;
-    };
-  }, [targetPosition, camera]);
+
+      controlsRef.current.update();
+    }
+  });
 
   return (
     <OrbitControls
