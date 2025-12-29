@@ -189,9 +189,9 @@ export default function Home() {
   const handleJiaziSelect = (startYear: number, jiaziName: string) => {
     console.log('handleJiaziSelect called:', { startYear, jiaziName });
 
+    // 设置时间到选中的甲子年份
     setCurrentTime(new Date(startYear, 0, 1));
     setShowJiaziModal(false);
-    setIsPlaying(false);
 
     // 根据甲子设置对应的行星
     const planet = jiaziToPlanet[jiaziName] || jiaziToPlanet['default'];
@@ -204,6 +204,11 @@ export default function Home() {
       console.log('No planet found, using earth as default');
       setTargetPlanet('earth');
     }
+
+    // 自动开始播放,让用户看到行星从该时间点开始运行
+    setTimeout(() => {
+      setIsPlaying(true);
+    }, 500); // 延迟500ms确保相机先移动到位
   };
 
   const handleResetToNow = () => {

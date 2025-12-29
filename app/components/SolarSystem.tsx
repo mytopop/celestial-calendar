@@ -7,14 +7,77 @@ import * as THREE from 'three';
 import { Body } from 'astronomy-engine';
 import { useThree } from '@react-three/fiber';
 
-// 天体数据
-const PLANETS = {
-  mercury: { name: '水星', size: 1.2, color: '#00ffff', distance: 12, body: Body.Mercury },
-  venus: { name: '金星', size: 1.8, color: '#ffd700', distance: 18, body: Body.Venus },
-  earth: { name: '地球', size: 2, color: '#1e90ff', distance: 24, body: Body.Earth },
-  mars: { name: '火星', size: 1.5, color: '#ff6347', distance: 30, body: Body.Mars },
-  jupiter: { name: '木星', size: 5, color: '#ffa07a', distance: 45, body: Body.Jupiter },
-  saturn: { name: '土星', size: 4, color: '#daa520', distance: 60, body: Body.Saturn },
+// 行星数据接口
+interface PlanetData {
+  name: string;
+  size: number;
+  color: string;
+  distance: number;
+  body: Body;
+  hasRings?: boolean;
+  hasStripes?: boolean;
+  hasCraters?: boolean;
+  hasAtmosphere?: boolean;
+  hasLand?: boolean;
+  type: string;
+}
+
+// 天体数据(包含真实外观特征)
+const PLANETS: Record<string, PlanetData> = {
+  mercury: {
+    name: '水星',
+    size: 1.2,
+    color: '#8c7853', // 深棕灰色，陨石坑表面
+    distance: 12,
+    body: Body.Mercury,
+    hasCraters: true,
+    type: 'rocky'
+  },
+  venus: {
+    name: '金星',
+    size: 1.8,
+    color: '#f5e6a3', // 浅黄白色，浓厚大气
+    distance: 18,
+    body: Body.Venus,
+    hasAtmosphere: true,
+    type: 'rocky'
+  },
+  earth: {
+    name: '地球',
+    size: 2,
+    color: '#1e4d7c', // 深海蓝色
+    distance: 24,
+    body: Body.Earth,
+    hasLand: true,
+    type: 'rocky'
+  },
+  mars: {
+    name: '火星',
+    size: 1.5,
+    color: '#c1440e', // 锈红色，氧化铁表面
+    distance: 30,
+    body: Body.Mars,
+    hasCraters: true,
+    type: 'rocky'
+  },
+  jupiter: {
+    name: '木星',
+    size: 5,
+    color: '#d4a574', // 米黄褐色
+    distance: 45,
+    body: Body.Jupiter,
+    hasStripes: true,
+    type: 'gas'
+  },
+  saturn: {
+    name: '土星',
+    size: 4,
+    color: '#e3d595', // 金土色
+    distance: 60,
+    body: Body.Saturn,
+    hasRings: true,
+    type: 'gas'
+  },
 };
 
 // 24节气
@@ -32,15 +95,31 @@ interface CelestialBodyProps {
   emissive?: string;
   name?: string;
   onClick?: () => void;
+  hasRings?: boolean;
+  hasStripes?: boolean;
+  hasCraters?: boolean;
+  hasAtmosphere?: boolean;
+  hasLand?: boolean;
 }
 
-// 天体组件
-function CelestialBody({ size, color, position, emissive, name, onClick }: CelestialBodyProps) {
+// 天体组件(支持真实外观特征)
+function CelestialBody({
+  size,
+  color,
+  position,
+  emissive,
+  name,
+  onClick,
+  hasRings,
+  hasStripes,
+  hasCraters,
+  hasAtmosphere,
+  hasLand
+}: CelestialBodyProps) {
   const meshRef = useRef<THREE.Mesh>(null);
 
   const handleClick = (event: any) => {
     event.stopPropagation();
-    console.log('Clicked on:', name);
     if (onClick) {
       onClick();
     }
@@ -48,6 +127,7 @@ function CelestialBody({ size, color, position, emissive, name, onClick }: Celes
 
   return (
     <group position={position}>
+      {/* 行星本体 */}
       <mesh
         ref={meshRef}
         onClick={handleClick}
@@ -58,11 +138,59 @@ function CelestialBody({ size, color, position, emissive, name, onClick }: Celes
           color={color}
           emissive={emissive || '#000000'}
           emissiveIntensity={emissive ? 1 : 0}
+          roughness={hasCraters ? 0.9 : 0.5}
+          metalness={0.1}
         />
       </mesh>
+
+      {/* 土星光环 */}
+      {hasRings && (
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[size * 1.4, size * 2.2, 64]} />
+          <meshStandardMaterial
+            color="#c9b896"
+            side={THREE.DoubleSide}
+            transparent
+            opacity={0.8}
+          />
+        </mesh>
+      )}
+
+      {/* 木星条纹 */}
+      {hasStripes && (
+        <group>
+          <mesh rotation={[0, 0, 0]}>
+            <torusGeometry args={[size * 0.7, 0.1, 8, 32]} />
+            <meshStandardMaterial color="#b5a279" />
+          </mesh>
+          <mesh rotation={[0, 0, 0.3]}>
+            <torusGeometry args={[size * 0.5, 0.08, 8, 32]} />
+            <meshStandardMaterial color="#a89060" />
+          </mesh>
+          <mesh rotation={[0, 0, -0.3]}>
+            <torusGeometry args={[size * 0.6, 0.09, 8, 32]} />
+            <meshStandardMaterial color="#9c8550" />
+          </mesh>
+        </group>
+      )}
+
+      {/* 大气层光晕 */}
+      {hasAtmosphere && (
+        <mesh>
+          <sphereGeometry args={[size * 1.05, 32, 32]} />
+          <meshBasicMaterial
+            color="#ffffff"
+            transparent
+            opacity={0.15}
+            side={THREE.BackSide}
+          />
+        </mesh>
+      )}
+
+      {/* 名称标签 */}
       {name && (
         <Text
-          position={[0, size + 2, 0]}
+          position={[0, size + (hasRings ? size * 2.5 : 2), 0]}
           fontSize={1.5}
           color="#ffffff"
           anchorX="center"
@@ -194,7 +322,8 @@ function SolarSystemScene({ time, location, onBodyClick, targetPlanet }: SolarSy
         'Earth': 365.256,    // 地球：365.256天
         'Mars': 686.98,      // 火星：686.98天
         'Jupiter': 4332.59,  // 木星：4332.59天（11.86年）
-        'Saturn': 10759.22   // 土星：10759.22天（29.46年）
+        'Saturn': 10759.22,  // 土星：10759.22天（29.46年）
+        'Moon': 27.32        // 月球：27.32天（朔望月）
       };
 
       // 获取当前时间相对于基准时间的总天数
@@ -211,8 +340,6 @@ function SolarSystemScene({ time, location, onBodyClick, targetPlanet }: SolarSy
       const x = distance * Math.cos(angle);
       const z = distance * Math.sin(angle);
       const y = 0;
-
-      console.log(`${bodyKey}: period=${period.toFixed(1)} days, angle=${angle.toFixed(2)} rad, pos=[${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)}]`);
 
       return [x, y, z] as [number, number, number];
     } catch (error) {
@@ -295,6 +422,7 @@ function SolarSystemScene({ time, location, onBodyClick, targetPlanet }: SolarSy
           color={PLANETS.earth.color}
           position={[0, 0, 0]}
           name={PLANETS.earth.name}
+          hasLand={PLANETS.earth.hasLand}
           onClick={() => {
             const pos = calculatePosition(Body.Earth, PLANETS.earth.distance);
             handleBodyClick(PLANETS.earth.name, {
@@ -304,12 +432,12 @@ function SolarSystemScene({ time, location, onBodyClick, targetPlanet }: SolarSy
             }, pos);
           }}
         />
-        <Orbit radius={2} color="#666666" />
         <CelestialBody
           size={0.3}
           color="#cccccc"
           position={calculatePosition(Body.Moon, 2)}
           name="月球"
+          hasCraters={true}
           onClick={() => {
             const earthPos = calculatePosition(Body.Earth, PLANETS.earth.distance);
             const moonLocalPos = calculatePosition(Body.Moon, 2);
@@ -335,6 +463,11 @@ function SolarSystemScene({ time, location, onBodyClick, targetPlanet }: SolarSy
                 color={planet.color}
                 position={[0, 0, 0]}
                 name={planet.name}
+                hasRings={planet.hasRings}
+                hasStripes={planet.hasStripes}
+                hasCraters={planet.hasCraters}
+                hasAtmosphere={planet.hasAtmosphere}
+                hasLand={planet.hasLand}
                 onClick={() => handleBodyClick(planet.name, {
                   type: 'planet',
                   distance: `${planet.distance} AU`,
