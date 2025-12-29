@@ -208,12 +208,12 @@ function CelestialBody({
         </mesh>
       )}
 
-      {/* 名称标签 - 悬停时显示 */}
-      {name && hovered && (
+      {/* 名称标签 - 始终显示，但悬停时更大 */}
+      {name && (
         <Text
           position={[0, size + (hasRings ? size * 2.5 : 2), 0]}
-          fontSize={1.2}
-          color="#ffffff"
+          fontSize={hovered ? 1.5 : 1}
+          color={hovered ? "#ffeb3b" : "#ffffff"}
           anchorX="center"
           anchorY="middle"
           outlineWidth={0.15}
@@ -231,22 +231,29 @@ function CameraController({ targetPosition }: { targetPosition: [number, number,
   const { camera } = useThree();
   const controlsRef = useRef<any>(null);
   const animationRef = useRef<number | null>(null);
+  const isAnimating = useRef(false);
 
   useEffect(() => {
-    if (targetPosition && controlsRef.current) {
+    if (targetPosition && controlsRef.current && !isAnimating.current) {
       const target = new THREE.Vector3(...targetPosition);
-      const distance = 15;
+      const distance = 25; // 增加距离，让用户能看到更多行星
+
+      // 禁用OrbitControls的自动更新，避免冲突
+      const controls = controlsRef.current;
+      controls.enabled = false;
+      isAnimating.current = true;
 
       // 平滑移动相机
       const startPosition = camera.position.clone();
-      const endPosition = target.clone().add(new THREE.Vector3(distance, distance * 0.8, distance));
+      const startTarget = controls.target.clone();
+      const endPosition = target.clone().add(new THREE.Vector3(distance, distance * 0.6, distance));
 
       // 取消之前的动画
       if (animationRef.current !== null) {
         cancelAnimationFrame(animationRef.current);
       }
 
-      const duration = 1500; // 1.5秒动画
+      const duration = 1200; // 1.2秒动画
       const startTime = performance.now();
 
       const animate = () => {
@@ -256,15 +263,14 @@ function CameraController({ targetPosition }: { targetPosition: [number, number,
         if (progress <= 1) {
           const eased = easeInOutCubic(progress);
           camera.position.lerpVectors(startPosition, endPosition, eased);
-
-          const controls = controlsRef.current;
-          if (controls && controls.target) {
-            (controls.target as THREE.Vector3).lerp(target, eased * 0.1);
-            controls.update();
-          }
+          (controls.target as THREE.Vector3).lerpVectors(startTarget, target, eased);
 
           animationRef.current = requestAnimationFrame(animate);
         } else {
+          // 动画完成，重新启用OrbitControls
+          controls.enabled = true;
+          controls.update();
+          isAnimating.current = false;
           animationRef.current = null;
         }
       };
@@ -278,6 +284,10 @@ function CameraController({ targetPosition }: { targetPosition: [number, number,
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
       }
+      if (controlsRef.current) {
+        controlsRef.current.enabled = true;
+      }
+      isAnimating.current = false;
     };
   }, [targetPosition, camera]);
 
