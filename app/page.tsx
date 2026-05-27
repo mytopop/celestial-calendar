@@ -12,7 +12,7 @@ const SolarSystem = dynamic(() => import('./components/SolarSystem'), {
   ),
 });
 
-// 干支计算工具
+// 干支计算
 const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 const EARTHLY_BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 const SOLAR_TERMS = [
@@ -21,8 +21,11 @@ const SOLAR_TERMS = [
   '立秋', '处暑', '白露', '秋分', '寒露', '霜降',
   '立冬', '小雪', '大雪', '冬至', '小寒', '大寒'
 ];
+const ZODIAC_NAMES = [
+  '白羊座', '金牛座', '双子座', '巨蟹座', '狮子座', '处女座',
+  '天秤座', '天蝎座', '射手座', '摩羯座', '水瓶座', '双鱼座'
+];
 
-// 常用城市
 const CITIES = {
   '北京': { lat: 39.9, lon: 116.4 },
   '上海': { lat: 31.2, lon: 121.5 },
@@ -34,68 +37,62 @@ const CITIES = {
 
 function getGanZhiYear(year: number): string {
   const offset = (year - 4) % 60;
-  const stemIndex = offset % 10;
-  const branchIndex = offset % 12;
-  return HEAVENLY_STEMS[stemIndex] + EARTHLY_BRANCHES[branchIndex];
+  return HEAVENLY_STEMS[offset % 10] + EARTHLY_BRANCHES[offset % 12];
 }
-
-// 生成60甲子列表
-function generate60JiaZi(): Array<{ name: string; year: number; startYear: number }> {
-  const jiaziList: Array<{ name: string; year: number; startYear: number }> = [];
-  const baseYear = 4; // 公元4年是甲子年
-
-  for (let i = 0; i < 60; i++) {
-    const year = baseYear + i;
-    const stemIndex = i % 10;
-    const branchIndex = i % 12;
-    const name = HEAVENLY_STEMS[stemIndex] + EARTHLY_BRANCHES[branchIndex];
-
-    // 计算最近的年份
-    const currentYear = new Date().getFullYear();
-    const cycles = Math.floor((currentYear - baseYear) / 60);
-    const recentYear = baseYear + i + cycles * 60;
-    if (recentYear > currentYear) {
-      jiaziList.push({
-        name,
-        year: i,
-        startYear: recentYear - 60
-      });
-    } else {
-      jiaziList.push({
-        name,
-        year: i,
-        startYear: recentYear
-      });
-    }
-  }
-
-  return jiaziList;
-}
-
-const JIAZI_LIST = generate60JiaZi();
 
 function getGanZhiMonth(year: number, month: number): string {
   const yearStemIndex = (year - 4) % 10;
   const monthStemIndex = (yearStemIndex % 5) * 2 + (month - 1);
-  const stem = HEAVENLY_STEMS[monthStemIndex % 10];
-  const branch = EARTHLY_BRANCHES[(month - 1) % 12];
-  return stem + branch;
+  return HEAVENLY_STEMS[monthStemIndex % 10] + EARTHLY_BRANCHES[(month - 1) % 12];
 }
 
 function getGanZhiDay(date: Date): string {
   const baseDate = new Date('1949-10-01');
   const daysDiff = Math.floor((date.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24));
   const offset = (daysDiff + 10) % 60;
-  const stemIndex = offset % 10;
-  const branchIndex = offset % 12;
-  return HEAVENLY_STEMS[stemIndex] + EARTHLY_BRANCHES[branchIndex];
+  return HEAVENLY_STEMS[offset % 10] + EARTHLY_BRANCHES[offset % 12];
 }
 
 function getCurrentSolarTerm(date: Date): string {
   const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-  const index = Math.floor((dayOfYear * 24) / 365) % 24;
-  return SOLAR_TERMS[index];
+  return SOLAR_TERMS[Math.floor((dayOfYear * 24) / 365) % 24];
 }
+
+// 简易太阳黄经 → 星座
+function getSunZodiac(date: Date): string {
+  const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+  // 春分≈3月20日=第79天 → 黄经0°
+  const adjustedDay = dayOfYear - 79;
+  const deg = ((adjustedDay / 365.25) * 360 + 360) % 360;
+  return ZODIAC_NAMES[Math.floor(deg / 30)];
+}
+
+function generate60JiaZi() {
+  const list: Array<{ name: string; year: number }> = [];
+  const baseYear = 4;
+  const currentYear = new Date().getFullYear();
+  for (let i = 0; i < 60; i++) {
+    const stemIndex = i % 10;
+    const branchIndex = i % 12;
+    const name = HEAVENLY_STEMS[stemIndex] + EARTHLY_BRANCHES[branchIndex];
+    const cycles = Math.floor((currentYear - baseYear) / 60);
+    let year = baseYear + i + cycles * 60;
+    if (year > currentYear) year -= 60;
+    list.push({ name, year });
+  }
+  return list;
+}
+
+const JIAZI_LIST = generate60JiaZi();
+
+// 甲子五行对应天体（地心模型中可跳转）
+const WUXING_TO_BODY: Record<string, string> = {
+  '甲': '木星', '乙': '木星',
+  '丙': '火星', '丁': '火星',
+  '戊': '土星', '己': '土星',
+  '庚': '金星', '辛': '金星',
+  '壬': '水星', '癸': '水星',
+};
 
 export default function Home() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -105,110 +102,37 @@ export default function Home() {
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showJiaziModal, setShowJiaziModal] = useState(false);
   const [targetPlanet, setTargetPlanet] = useState<string | undefined>(undefined);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1); // 播放速度倍数
-
-  // 甲子与行星的对应关系（根据传统五行理论）
-  const jiaziToPlanet: Record<string, string> = {
-    // 水行（水星）
-    '甲子': 'mercury', '乙丑': 'mercury',
-    '丙子': 'mercury', '丁丑': 'mercury',
-    '戊子': 'mercury', '己丑': 'mercury',
-    '庚子': 'mercury', '辛丑': 'mercury',
-    '壬子': 'mercury', '癸丑': 'mercury',
-
-    // 木行（木星）
-    '壬寅': 'jupiter', '癸卯': 'jupiter',
-    '壬辰': 'jupiter', '癸巳': 'jupiter',
-    '壬午': 'jupiter', '癸未': 'jupiter',
-    '壬申': 'jupiter', '癸酉': 'jupiter',
-    '壬戌': 'jupiter', '癸亥': 'jupiter',
-
-    // 火行（火星）
-    '丙寅': 'mars', '丁卯': 'mars',
-    '丙辰': 'mars', '丁巳': 'mars',
-    '丙午': 'mars', '丁未': 'mars',
-    '丙申': 'mars', '丁酉': 'mars',
-    '丙戌': 'mars', '丁亥': 'mars',
-
-    // 土行（土星）
-    '戊寅': 'saturn', '己卯': 'saturn',
-    '戊辰': 'saturn', '己巳': 'saturn',
-    '戊午': 'saturn', '己未': 'saturn',
-    '戊申': 'saturn', '己酉': 'saturn',
-    '戊戌': 'saturn', '己亥': 'saturn',
-
-    // 金行（金星）
-    '庚寅': 'venus', '辛卯': 'venus',
-    '庚辰': 'venus', '辛巳': 'venus',
-    '庚午': 'venus', '辛未': 'venus',
-    '庚申': 'venus', '辛酉': 'venus',
-    '庚戌': 'venus', '辛亥': 'venus',
-
-    // 水星补充（其余甲子）
-    '甲寅': 'mercury', '乙卯': 'mercury',
-    '甲辰': 'mercury', '乙巳': 'mercury',
-    '甲午': 'mercury', '乙未': 'mercury',
-    '甲申': 'mercury', '乙酉': 'mercury',
-    '甲戌': 'mercury', '乙亥': 'mercury',
-
-    // 地球作为默认
-    'default': 'earth'
-  };
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
 
   useEffect(() => {
     if (!isPlaying) return;
-
     const timer = setInterval(() => {
-      setCurrentTime((prev) => new Date(prev.getTime() + 1000 * 60 * 60 * 24 * playbackSpeed));
-    }, 50); // 提高刷新率到50ms
-
+      setCurrentTime(prev => new Date(prev.getTime() + 1000 * 60 * 60 * 24 * playbackSpeed));
+    }, 50);
     return () => clearInterval(timer);
   }, [isPlaying, playbackSpeed]);
 
   const year = currentTime.getFullYear();
   const month = currentTime.getMonth() + 1;
   const day = currentTime.getDate();
-
   const ganZhiYear = getGanZhiYear(year);
   const ganZhiMonth = getGanZhiMonth(year, month);
   const ganZhiDay = getGanZhiDay(currentTime);
   const currentTerm = getCurrentSolarTerm(currentTime);
+  const sunZodiac = getSunZodiac(currentTime);
 
   const handleBodyClick = (name: string, info: any) => {
     setSelectedBody({ name, info });
   };
 
-  const handleLocationChange = (cityName: string) => {
-    const city = CITIES[cityName as keyof typeof CITIES];
-    if (city) {
-      setLocation({ latitude: city.lat, longitude: city.lon, name: cityName });
-      setShowLocationModal(false);
-    }
-  };
-
-  const handleJiaziSelect = (startYear: number, jiaziName: string) => {
-    console.log('handleJiaziSelect called:', { startYear, jiaziName });
-
-    // 设置时间到选中的甲子年份
-    setCurrentTime(new Date(startYear, 0, 1));
+  const handleJiaziSelect = (jiaziYear: number, jiaziName: string) => {
+    setCurrentTime(new Date(jiaziYear, 0, 1));
     setShowJiaziModal(false);
-
-    // 根据甲子设置对应的行星
-    const planet = jiaziToPlanet[jiaziName] || jiaziToPlanet['default'];
-    console.log('Mapped to planet:', planet);
-
-    if (planet) {
-      console.log('Setting target planet to:', planet);
-      setTargetPlanet(planet);
-    } else {
-      console.log('No planet found, using earth as default');
-      setTargetPlanet('earth');
-    }
-
-    // 自动开始播放,让用户看到行星从该时间点开始运行
-    setTimeout(() => {
-      setIsPlaying(true);
-    }, 500); // 延迟500ms确保相机先移动到位
+    // 甲子天干 → 对应行星
+    const stem = jiaziName[0];
+    const bodyName = WUXING_TO_BODY[stem] || '太阳';
+    setTargetPlanet(bodyName);
+    setTimeout(() => setIsPlaying(true), 500);
   };
 
   const handleResetToNow = () => {
@@ -218,7 +142,7 @@ export default function Home() {
   };
 
   return (
-    <div className="w-full h-screen text-white overflow-hidden relative" style={{ background: 'transparent' }}>
+    <div className="w-full h-screen text-white overflow-hidden relative" style={{ background: '#000000' }}>
       <SolarSystem
         time={currentTime}
         location={{ latitude: location.latitude, longitude: location.longitude }}
@@ -228,66 +152,58 @@ export default function Home() {
 
       {/* 顶部标题 */}
       <div className="absolute top-4 left-4 z-10">
-        <h1 className="text-3xl font-bold text-blue-400">
-          六十甲子天文可视化系统
+        <h1 className="text-3xl font-bold text-indigo-400">
+          地心天球 · 黄道历法
         </h1>
         <p className="text-sm text-gray-400 mt-1">
-          中国传统历法与现代天文计算的3D展示
+          以地球为观测中心，太阳与五星运行于黄道十二宫
         </p>
       </div>
 
       {/* 信息面板 */}
-      <div className="absolute top-4 right-4 bg-black/80 p-6 rounded-lg backdrop-blur-sm border border-blue-500/30 max-w-sm z-10">
-        <h2 className="text-2xl font-bold mb-4 text-blue-400">当前状态</h2>
-
-        <div className="space-y-3 text-sm">
+      <div className="absolute top-4 right-4 bg-black/80 p-5 rounded-lg backdrop-blur-sm border border-indigo-500/30 max-w-sm z-10">
+        <h2 className="text-xl font-bold mb-3 text-indigo-400">天象信息</h2>
+        <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-400">公历日期:</span>
-            <span className="text-white font-mono">
-              {year}-{String(month).padStart(2, '0')}-{String(day).padStart(2, '0')}
-            </span>
+            <span className="text-gray-400">公历:</span>
+            <span className="text-white font-mono">{year}-{String(month).padStart(2,'0')}-{String(day).padStart(2,'0')}</span>
           </div>
-
           <div className="flex justify-between">
-            <span className="text-gray-400">干支纪年:</span>
+            <span className="text-gray-400">干支年:</span>
             <span className="text-yellow-400 font-bold">{ganZhiYear}年</span>
           </div>
-
           <div className="flex justify-between">
-            <span className="text-gray-400">干支纪月:</span>
+            <span className="text-gray-400">干支月:</span>
             <span className="text-green-400">{ganZhiMonth}月</span>
           </div>
-
           <div className="flex justify-between">
-            <span className="text-gray-400">干支纪日:</span>
+            <span className="text-gray-400">干支日:</span>
             <span className="text-blue-400">{ganZhiDay}日</span>
           </div>
-
           <div className="flex justify-between">
-            <span className="text-gray-400">当前节气:</span>
+            <span className="text-gray-400">节气:</span>
             <span className="text-red-400 font-bold">{currentTerm}</span>
           </div>
-
           <div className="flex justify-between">
-            <span className="text-gray-400">观测位置:</span>
-            <button
-              onClick={() => setShowLocationModal(true)}
-              className="text-purple-400 hover:text-purple-300 underline"
-            >
-              {location.name} ({location.longitude.toFixed(1)}°E, {location.latitude.toFixed(1)}°N)
+            <span className="text-gray-400">太阳所在:</span>
+            <span className="text-purple-400 font-bold">{sunZodiac}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400">观测地:</span>
+            <button onClick={() => setShowLocationModal(true)} className="text-purple-400 hover:text-purple-300 underline">
+              {location.name}
             </button>
           </div>
         </div>
 
-        {/* 天体详细信息 */}
         {selectedBody && (
-          <div className="mt-4 pt-4 border-t border-gray-700">
-            <h3 className="text-lg font-bold text-yellow-400 mb-2">{selectedBody.name}</h3>
+          <div className="mt-3 pt-3 border-t border-gray-700">
+            <h3 className="text-lg font-bold text-yellow-400 mb-1">{selectedBody.name}</h3>
             <div className="text-xs space-y-1">
-              {Object.entries(selectedBody.info).map(([key, value]) => (
-                <div key={key} className="flex justify-between">
-                  <span className="text-gray-400">{key}:</span>
-                  <span className="text-white">{String(value)}</span>
+              {Object.entries(selectedBody.info).map(([k, v]) => (
+                <div key={k} className="flex justify-between">
+                  <span className="text-gray-400">{k}:</span>
+                  <span className="text-white">{String(v)}</span>
                 </div>
               ))}
             </div>
@@ -296,165 +212,96 @@ export default function Home() {
       </div>
 
       {/* 时间轴控制 */}
-      <div className="absolute bottom-4 left-4 right-4 bg-black/80 p-4 rounded-lg backdrop-blur-sm border border-blue-500/30 z-10">
+      <div className="absolute bottom-4 left-4 right-4 bg-black/80 p-4 rounded-lg backdrop-blur-sm border border-indigo-500/30 z-10">
         <div className="flex items-center gap-4 flex-wrap">
-          <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors"
-          >
+          <button onClick={() => setIsPlaying(!isPlaying)}
+            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors">
             {isPlaying ? '暂停' : '播放'}
           </button>
-
-          <button
-            onClick={handleResetToNow}
-            className="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-colors"
-          >
+          <button onClick={handleResetToNow}
+            className="px-5 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-colors">
             回到现在
           </button>
-
-          <button
-            onClick={() => setShowJiaziModal(true)}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors"
-          >
+          <button onClick={() => setShowJiaziModal(true)}
+            className="px-5 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium transition-colors">
             60甲子
           </button>
-
-          <input
-            type="date"
+          <input type="date"
             value={currentTime.toISOString().split('T')[0]}
             onChange={(e) => setCurrentTime(new Date(e.target.value))}
             className="px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white"
           />
-
-          {/* 速度控制 */}
           <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-2">
             <span className="text-sm text-gray-400 px-2">速度:</span>
-            {[1, 5, 10, 30, 60, 365].map((speed) => (
-              <button
-                key={speed}
-                onClick={() => setPlaybackSpeed(speed)}
+            {[1, 5, 10, 30, 60, 365].map(speed => (
+              <button key={speed} onClick={() => setPlaybackSpeed(speed)}
                 className={`px-3 py-1 rounded text-sm transition-colors ${
-                  playbackSpeed === speed
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
+                  playbackSpeed === speed ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}>
                 {speed === 1 ? '1x' : speed === 365 ? '1年/秒' : speed + 'x'}
               </button>
             ))}
           </div>
-
-          <div className="text-sm text-gray-400">
-            <span>当前: {playbackSpeed}天/帧 ({playbackSpeed * 20}天/秒)</span>
-          </div>
-
           <div className="ml-auto text-sm text-gray-400">
-            <span>提示: 点击天体查看详细信息，双击拉近视角</span>
+            地心模型：地球居中，观日月五星运行黄道
           </div>
         </div>
       </div>
 
-      {/* 地理位置选择模态框 */}
+      {/* 位置选择 */}
       {showLocationModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-gray-900 p-6 rounded-lg border border-blue-500/50 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold text-blue-400 mb-4">选择观测位置</h2>
-
+          <div className="bg-gray-900 p-6 rounded-lg border border-indigo-500/50 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold text-indigo-400 mb-4">选择观测位置</h2>
             <div className="grid grid-cols-2 gap-3 mb-4">
-              {Object.keys(CITIES).map((city) => (
-                <button
-                  key={city}
-                  onClick={() => handleLocationChange(city)}
-                  className="px-4 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 hover:border-blue-500 transition-colors"
-                >
+              {Object.keys(CITIES).map(city => (
+                <button key={city} onClick={() => {
+                  const c = CITIES[city as keyof typeof CITIES];
+                  setLocation({ latitude: c.lat, longitude: c.lon, name: city });
+                  setShowLocationModal(false);
+                }} className="px-4 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 hover:border-indigo-500 transition-colors">
                   {city}
                 </button>
               ))}
             </div>
-
-            <div className="mb-4">
-              <label className="block text-sm text-gray-400 mb-2">或输入经纬度:</label>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  placeholder="纬度"
-                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
-                  id="custom-lat"
-                />
-                <input
-                  type="number"
-                  placeholder="经度"
-                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white"
-                  id="custom-lon"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  const lat = parseFloat((document.getElementById('custom-lat') as HTMLInputElement).value);
-                  const lon = parseFloat((document.getElementById('custom-lon') as HTMLInputElement).value);
-                  if (!isNaN(lat) && !isNaN(lon)) {
-                    setLocation({ latitude: lat, longitude: lon, name: '自定义' });
-                    setShowLocationModal(false);
-                  }
-                }}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg"
-              >
-                确认
-              </button>
-              <button
-                onClick={() => setShowLocationModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg"
-              >
-                取消
-              </button>
-            </div>
+            <button onClick={() => setShowLocationModal(false)}
+              className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg">
+              取消
+            </button>
           </div>
         </div>
       )}
 
-      {/* 60甲子选择模态框 */}
+      {/* 60甲子 */}
       {showJiaziModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-gray-900 p-6 rounded-lg border border-purple-500/50 max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
-            <h2 className="text-2xl font-bold text-purple-400 mb-4">选择60甲子年份</h2>
-            <p className="text-sm text-gray-400 mb-4">点击任意甲子，天体将运行到对应年份位置</p>
-
+            <h2 className="text-xl font-bold text-purple-400 mb-2">六十甲子</h2>
+            <p className="text-sm text-gray-400 mb-4">点击甲子 → 跳转到对应年份，天干五行定位对应行星</p>
             <div className="flex-1 overflow-y-auto">
               <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
-                {JIAZI_LIST.map((jiazi, index) => {
-                  const currentYear = currentTime.getFullYear();
-                  const jiaziYear = jiazi.startYear + Math.floor((currentYear - jiazi.startYear) / 60) * 60;
-                  const isSelected = jiaziYear === currentYear;
-
+                {JIAZI_LIST.map((jz, i) => {
+                  const isSelected = jz.year === year;
+                  const stem = jz.name[0];
+                  const planetName = WUXING_TO_BODY[stem] || '';
                   return (
-                    <button
-                      key={index}
-                      onClick={() => handleJiaziSelect(jiaziYear, jiazi.name)}
-                      className={`px-3 py-2 rounded-lg border transition-colors ${
-                        isSelected
-                          ? 'bg-purple-600 border-purple-400 text-white font-bold'
+                    <button key={i} onClick={() => handleJiaziSelect(jz.year, jz.name)}
+                      className={`px-2 py-2 rounded-lg border transition-colors ${
+                        isSelected ? 'bg-purple-600 border-purple-400 text-white font-bold'
                           : 'bg-gray-800 border-gray-600 hover:bg-gray-700 hover:border-purple-500 text-white'
-                      }`}
-                    >
-                      <div className="text-lg">{jiazi.name}</div>
-                      <div className="text-xs text-gray-400">{jiaziYear}</div>
+                      }`}>
+                      <div className="text-lg">{jz.name}</div>
+                      <div className="text-xs text-gray-400">{jz.year}</div>
+                      <div className="text-xs text-indigo-400">{planetName}</div>
                     </button>
                   );
                 })}
               </div>
             </div>
-
-            <div className="mt-4 flex gap-3">
-              <button
-                onClick={() => setShowJiaziModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg"
-              >
-                取消
-              </button>
-            </div>
+            <button onClick={() => setShowJiaziModal(false)}
+              className="mt-4 w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg">
+              取消
+            </button>
           </div>
         </div>
       )}
